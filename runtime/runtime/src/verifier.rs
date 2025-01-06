@@ -23,8 +23,6 @@ use near_store::{
 };
 use near_vm_runner::logic::LimitConfig;
 
-use tracing::debug;
-
 pub const ZERO_BALANCE_ACCOUNT_STORAGE_LIMIT: StorageUsage = 770;
 
 /// Possible errors when checking whether an account has enough tokens for storage staking
@@ -142,7 +140,7 @@ pub fn validate_transaction(
 pub fn verify_and_charge_transaction(
     config: &RuntimeConfig,
     state_update: &mut TrieUpdate,
-    gas_price: Balance,
+    _gas_price: Balance,
     signed_transaction: &SignedTransaction,
     transaction_cost: &TransactionCost,
     block_height: Option<BlockHeight>,
