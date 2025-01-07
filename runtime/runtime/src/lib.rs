@@ -293,7 +293,6 @@ impl Runtime {
     ///
     /// If all validations pass, returns a HashMap of tx_hash -> TransactionCost.
     /// If any validation fails, returns the first InvalidTxError encountered.
-
     fn parallel_validate_transactions(
         config: &RuntimeConfig,
         gas_price: Balance,
