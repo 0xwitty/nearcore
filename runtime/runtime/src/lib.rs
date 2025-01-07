@@ -298,7 +298,7 @@ impl Runtime {
         config: &RuntimeConfig,
         gas_price: Balance,
         transactions: &[SignedTransaction],
-        current_protocol_version: ProtocolVersion
+        current_protocol_version: ProtocolVersion,
     ) -> Result<HashMap<CryptoHash, TransactionCost>, InvalidTxError> {
         tracing::debug!(target: "runtime", "parallel validation: starting threads");
 
@@ -307,7 +307,13 @@ impl Runtime {
             .try_fold(
                 || Vec::new(),
                 |mut acc, tx| {
-                    let cost = validate_transaction(config, gas_price, tx, true, current_protocol_version)?;
+                    let cost = validate_transaction(
+                        config,
+                        gas_price,
+                        tx,
+                        true,
+                        current_protocol_version,
+                    )?;
                     acc.push((tx.get_hash(), cost));
                     Ok::<_, InvalidTxError>(acc)
                 },
@@ -317,7 +323,7 @@ impl Runtime {
                 |mut acc1, mut acc2| {
                     acc1.append(&mut acc2);
                     Ok::<_, InvalidTxError>(acc1)
-                }
+                },
             )?;
 
         Ok(results.into_iter().collect())
