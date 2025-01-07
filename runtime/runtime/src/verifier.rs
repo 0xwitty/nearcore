@@ -1544,18 +1544,8 @@ mod tests {
             wasm_config.limit_config.max_transaction_size = transaction_size - 1;
         }
 
-        let cost = validate_transaction(&config, gas_price, &transaction, false, PROTOCOL_VERSION)
-            .expect("expected no validation error");
-        let err = verify_and_charge_transaction(
-            &config,
-            &mut state_update,
-            gas_price,
-            &transaction,
-            &cost,
-            None,
-            PROTOCOL_VERSION,
-        )
-        .expect_err("expected an error");
+        let err = validate_transaction(&config, gas_price, &transaction, false, PROTOCOL_VERSION)
+            .expect_err("expected validation error - size exceeded");
         assert_eq!(
             err,
             InvalidTxError::TransactionSizeExceeded {

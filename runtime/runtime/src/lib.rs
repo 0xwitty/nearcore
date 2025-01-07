@@ -289,33 +289,38 @@ impl Runtime {
         debug!(target: "runtime", "{}", log_str);
     }
 
-    /// Parallel validation for all transactions.
+    /// Parallel validation for all transactions with early short-circuit on first error.
     ///
-    /// If any transaction fails, returns an error immediately. Otherwise, returns Ok(()).
+    /// If all validations pass, returns a HashMap of tx_hash -> TransactionCost.
+    /// If any validation fails, returns the first InvalidTxError encountered.
+
     fn parallel_validate_transactions(
         config: &RuntimeConfig,
         gas_price: Balance,
         transactions: &[SignedTransaction],
-        current_protocol_version: ProtocolVersion,
+        current_protocol_version: ProtocolVersion
     ) -> Result<HashMap<CryptoHash, TransactionCost>, InvalidTxError> {
         tracing::debug!(target: "runtime", "parallel validation: starting threads");
 
-        let results: Vec<(CryptoHash, Result<TransactionCost, InvalidTxError>)> = transactions
+        let results = transactions
             .par_iter()
-            .map(|tx| {
-                let res =
-                    validate_transaction(config, gas_price, tx, true, current_protocol_version);
-                (tx.get_hash(), res)
-            })
-            .collect();
+            .try_fold(
+                || Vec::new(),
+                |mut acc, tx| {
+                    let cost = validate_transaction(config, gas_price, tx, true, current_protocol_version)?;
+                    acc.push((tx.get_hash(), cost));
+                    Ok::<_, InvalidTxError>(acc)
+                },
+            )
+            .try_reduce(
+                || Vec::new(),
+                |mut acc1, mut acc2| {
+                    acc1.append(&mut acc2);
+                    Ok::<_, InvalidTxError>(acc1)
+                }
+            )?;
 
-        for (_, res) in &results {
-            if let Err(e) = res {
-                return Err(e.clone());
-            }
-        }
-
-        Ok(results.into_iter().map(|(h, cost)| (h, cost.unwrap())).collect())
+        Ok(results.into_iter().collect())
     }
 
     /// Takes one signed transaction, verifies it and converts it to a receipt.
